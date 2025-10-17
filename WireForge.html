@@ -1,7 +1,1830 @@
 <!DOCTYPE html>
 <html lang="en">
-<title>WireForge -  Website Builder</title>
-  <script>
-        const TOOL_VERSION = '0.0.1';
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WireForge - Visual Web Design Tool</title>
+    <script>
+        const TOOL_VERSION = '1.0.0';
     </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better UX */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        #canvas {
+            cursor: grab;
+            display: block;
+        }
+        #canvas:active {
+            cursor: grabbing;
+        }
+        /* Custom scrollbar for a more modern look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2c2c2c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+        textarea {
+            background-color: #2a2a2e;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+
+        /* Splash Screen Styles */
+        #splash-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .splash-content {
+            text-align: center;
+            animation: fadeInUp 1s ease-out;
+        }
+        .splash-logo {
+            font-family: 'Inter', sans-serif;
+            font-size: 4rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            letter-spacing: 2px;
+        }
+        .splash-tagline {
+            font-size: 1.2rem;
+            color: #888;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 0.5s forwards;
+        }
+        .creator-credit {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            color: #666;
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            opacity: 0;
+            animation: fadeIn 1s ease-out 1s forwards;
+            letter-spacing: 1px;
+            font-weight: 400;
+        }
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        /* Ensure app container starts completely hidden */
+        #app-container {
+            opacity: 0;
+            display: flex;
+            width: 100%;
+            height: 100%;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* Glass effect for floating menus */
+        .glass-effect {
+            background: rgba(33, 33, 33, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-background-clip: padding-box;
+            background-clip: padding-box;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Floating element palette */
+        #element-palette {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            padding: 12px;
+            width: 120px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .palette-category {
+            margin-bottom: 12px;
+        }
+        .palette-category:last-child {
+            margin-bottom: 0;
+        }
+        .palette-category h3 {
+            margin: 0 0 8px 0;
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            padding-bottom: 3px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .palette-item {
+            padding: 8px 6px;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            background: rgba(100, 149, 237, 0.08);
+            border: 1px solid rgba(100, 149, 237, 0.15);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .palette-item:hover {
+            background: rgba(100, 149, 237, 0.15);
+            transform: translateY(-1px);
+            border-color: rgba(100, 149, 237, 0.3);
+        }
+        .palette-item:active {
+            transform: translateY(0);
+        }
+        .palette-item .icon {
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        .palette-item .label {
+            flex: 1;
+            font-weight: 500;
+        }
+
+        /* Code panels */
+        .code-panel {
+            position: relative;
+        }
+        .code-panel textarea {
+            pointer-events: none;
+            user-select: none;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #6495ED;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .copy-btn:hover {
+            background: #4a86e8;
+        }
+
+        /* Page boundary indicator */
+        .page-boundary {
+            position: absolute;
+            border: 2px dashed rgba(100, 149, 237, 0.4);
+            background: rgba(100, 149, 237, 0.03);
+            pointer-events: none;
+            transition: height 0.3s ease;
+        }
+        
+        /* Status indicator */
+        #statusIndicator {
+            transition: all 0.3s ease;
+        }
+        
+        /* Control buttons */
+        .control-btn {
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .control-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Element styles */
+        .element {
+            position: absolute;
+            cursor: move;
+            box-sizing: border-box;
+            transform-origin: 0 0;
+            transition: border-color 0.2s ease;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .element.selected {
+            border: 2px solid #6495ED !important;
+            z-index: 100;
+        }
+        .element.dragging {
+            opacity: 0.9;
+            z-index: 101;
+            filter: drop-shadow(0 4px 8px rgba(100, 149, 237, 0.4));
+        }
+        
+        /* Image element styling */
+        .element.image {
+            background: rgba(79, 133, 227, 0.3);
+            border: 1px solid #6495ED;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            text-align: center;
+            padding: 5px;
+            box-sizing: border-box;
+            overflow: hidden;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+        
+        /* Delete button - 60% larger, positioned better, and red */
+        .delete-btn {
+            position: absolute;
+            top: -18px;
+            left: -18px;
+            width: 32px;
+            height: 32px;
+            background: #ff4444;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 11;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            border: 2px solid #1a1a1a;
+            font-weight: bold;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        .element.selected .delete-btn {
+            opacity: 1;
+        }
+        .delete-btn:hover {
+            transform: scale(1.1);
+            background: #ff6666;
+        }
+
+        /* Resize handles */
+        .resize-handle {
+            position: absolute;
+            background: #6495ED;
+            border: 2px solid #1a1a1a;
+            border-radius: 2px;
+            opacity: 0;
+            transition: opacity 0.2s, background 0.2s;
+            z-index: 12;
+        }
+        .element.selected .resize-handle {
+            opacity: 1;
+        }
+        .resize-handle:hover {
+            background: #4a86e8;
+        }
+        .resize-handle.top {
+            top: -6px;
+            left: 20px;
+            right: 20px;
+            height: 6px;
+            cursor: n-resize;
+        }
+        .resize-handle.right {
+            top: 20px;
+            right: -6px;
+            bottom: 20px;
+            width: 6px;
+            cursor: e-resize;
+        }
+        .resize-handle.bottom {
+            bottom: -6px;
+            left: 20px;
+            right: 20px;
+            height: 6px;
+            cursor: s-resize;
+        }
+        .resize-handle.left {
+            top: 20px;
+            left: -6px;
+            bottom: 20px;
+            width: 6px;
+            cursor: w-resize;
+        }
+        .resize-handle.resizing {
+            background: #f59e0b;
+            opacity: 1;
+        }
+
+        /* Grid pattern */
+        .grid-pattern {
+            stroke: rgba(255, 255, 255, 0.07);
+            stroke-width: 0.5;
+        }
+        
+        /* CSS Stylization Menu */
+        #css-stylization-menu {
+            position: absolute;
+            z-index: 100;
+            width: 140px;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+        }
+        .css-menu-header {
+            padding: 10px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: 500;
+            color: #f0f0f0;
+            transition: background 0.2s;
+        }
+        .css-menu-header:hover {
+            background: rgba(100, 149, 237, 0.1);
+        }
+        .css-menu-content {
+            padding: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .css-option {
+            margin-bottom: 10px;
+        }
+        .css-option:last-child {
+            margin-bottom: 0;
+        }
+        .css-option label {
+            display: block;
+            font-size: 11px;
+            color: #aaa;
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+        .css-option input[type="number"],
+        .css-option input[type="text"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 6px 8px;
+            color: #f0f0f0;
+            font-size: 11px;
+        }
+        .css-option .checkbox-label {
+            display: flex;
+            align-items: center;
+            font-size: 11px;
+            color: #f0f0f0;
+            cursor: pointer;
+        }
+        .css-option-btn {
+            width: 100%;
+            background: rgba(100, 149, 237, 0.2);
+            color: white;
+            border: 1px solid rgba(100, 149, 237, 0.3);
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin-bottom: 6px;
+            text-align: left;
+        }
+        .css-option-btn:hover {
+            background: rgba(100, 149, 237, 0.3);
+            transform: translateY(-1px);
+        }
+        .css-option-btn.active {
+            background: rgba(100, 149, 237, 0.5);
+            border-color: rgba(100, 149, 237, 0.7);
+        }
+        .css-option-btn i {
+            margin-right: 6px;
+            width: 14px;
+            text-align: center;
+        }
+        .apply-btn {
+            width: 100%;
+            background: #6495ED;
+            color: white;
+            border: none;
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: background 0.2s;
+            margin-top: 8px;
+        }
+        .apply-btn:hover {
+            background: #4a86e8;
+        }
+        .apply-btn:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        
+        /* Border radius adjustment dots */
+        .border-radius-dot {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #f59e0b;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 13;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .element.selected.has-border-radius .border-radius-dot {
+            opacity: 1;
+        }
+        .border-radius-dot.top-left {
+            top: -4px;
+            left: -4px;
+        }
+        .border-radius-dot.top-right {
+            top: -4px;
+            right: -4px;
+        }
+        .border-radius-dot.bottom-left {
+            bottom: -4px;
+            left: -4px;
+        }
+        .border-radius-dot.bottom-right {
+            bottom: -4px;
+            right: -4px;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body class="flex h-screen">
+
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <div class="splash-logo">{WireForge}</div>
+            <div class="splash-tagline">Visualize • Design • Code</div>
+        </div>
+        <div class="creator-credit">Created by Cleon Williams</div>
+    </div>
+
+    <div id="app-container" class="flex h-screen w-full">
+        <!-- Left Column: Controls & Code Output -->
+        <aside class="w-[25%] h-full flex flex-col p-5 bg-[#212121] shadow-xl overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-cube text-blue-400"></i>
+                    WireForge
+                </h1>
+                <div id="paypal-container" class="relative group flex items-center hidden">
+                    <a href="https://paypal.me/teamfras" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white w-10 h-8 flex items-center justify-center rounded-md text-lg transition-colors shadow-md">
+                        <i class="fa-brands fa-paypal" style="color: #ffffff;"></i>
+                    </a>
+                    <div class="absolute left-full ml-3 w-max bg-gray-800 text-white text-xs rounded py-1 px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">
+                        Contribute
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col flex-grow">
+                <!-- HTML Output -->
+                <label for="htmlCode" class="text-sm font-medium mb-2 text-gray-300 flex items-center gap-2">
+                    <i class="fas fa-code text-blue-400"></i>
+                    HTML Code
+                </label>
+                <div class="code-panel mb-4">
+                    <textarea id="htmlCode" class="w-full h-40 p-3 border rounded-lg font-mono text-sm shadow-inner bg-[#2a2a2e] border-gray-700" readonly>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Website</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Your content will be generated here -->
+    </div>
+</body>
+</html></textarea>
+                    <button id="copyHtmlBtn" class="copy-btn">
+                        <i class="fas fa-copy mr-1"></i> Copy
+                    </button>
+                </div>
+
+                <!-- CSS Output -->
+                <label for="cssCode" class="text-sm font-medium mb-2 text-gray-300 flex items-center gap-2">
+                    <i class="fas fa-paint-brush text-blue-400"></i>
+                    CSS Code
+                </label>
+                <div class="code-panel mb-6">
+                    <textarea id="cssCode" class="w-full h-40 p-3 border rounded-lg font-mono text-sm shadow-inner bg-[#2a2a2e] border-gray-700" readonly>/* WireForge Generated CSS */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    min-height: 100vh;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    position: relative;
+}</textarea>
+                    <button id="copyCssBtn" class="copy-btn">
+                        <i class="fas fa-copy mr-1"></i> Copy
+                    </button>
+                </div>
+
+                <!-- Controls -->
+                <div class="space-y-3">
+                    <button id="resetViewBtn" class="control-btn w-full border border-gray-600 text-gray-300 py-2.5 rounded-lg hover:bg-gray-700 hover:text-white transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                        Reset View
+                    </button>
+                    <button id="clearAllBtn" class="control-btn w-full border border-red-600 text-red-600 py-2.5 rounded-lg hover:bg-red-600 hover:text-white transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-trash-alt"></i>
+                        Clear All
+                    </button>
+                    <button id="previewBtn" class="control-btn w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-eye"></i>
+                        Preview Website
+                    </button>
+                </div>
+                
+                <p id="elementCount" class="text-xs text-gray-500 mt-4 text-center">0 elements in design</p>
+            </div>
+        </aside>
+
+        <!-- Right Column: Design Canvas -->
+        <main id="canvas-container" class="w-[75%] h-full bg-[#1a1a1a] overflow-hidden relative">
+            <svg id="canvas" width="100%" height="100%"></svg>
+            
+            <!-- Page boundary indicator -->
+            <div id="page-boundary" class="page-boundary"></div>
+            
+            <!-- CSS Stylization Menu -->
+            <div id="css-stylization-menu" class="glass-effect">
+                <div class="css-menu-header">
+                    <span>CSS Styling</span>
+                </div>
+                <div class="css-menu-content">
+                    <button class="css-option-btn" data-option="rounded-edge">
+                        <i class="fas fa-circle"></i> Rounded Edge
+                    </button>
+                    <button class="css-option-btn" data-option="make-circle">
+                        <i class="fas fa-circle-notch"></i> Make Circle
+                    </button>
+                    <button class="css-option-btn" data-option="hover-pop">
+                        <i class="fas fa-mouse-pointer"></i> Hover Pop Effect
+                    </button>
+                    
+                    <!-- Hidden input fields that appear based on selection -->
+                    <div id="rounded-edge-input" class="css-option hidden">
+                        <label for="border-radius">Border Radius (px)</label>
+                        <input type="number" id="border-radius" min="0" max="100" placeholder="0">
+                    </div>
+                    
+                    <div id="hover-pop-input" class="css-option hidden">
+                        <label for="pop-duration">Pop Duration (ms)</label>
+                        <input type="number" id="pop-duration" min="0" max="5000" placeholder="300">
+                    </div>
+                    
+                    <button id="apply-css-btn" class="apply-btn hidden">
+                        Apply to Selected
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Floating Element Palette -->
+            <div id="element-palette" class="glass-effect">
+                <div class="palette-category">
+                    <h3>Media</h3>
+                    <div class="palette-item" data-type="image">
+                        <div class="icon">🖼️</div>
+                        <div class="label">Image</div>
+                    </div>
+                    <div class="palette-item" data-type="video">
+                        <div class="icon">🎥</div>
+                        <div class="label">Video</div>
+                    </div>
+                    <div class="palette-item" data-type="image-banner">
+                        <div class="icon">📷</div>
+                        <div class="label">Banner</div>
+                    </div>
+                </div>
+                <div class="palette-category">
+                    <h3>Interactives</h3>
+                    <div class="palette-item" data-type="button">
+                        <div class="icon">🔘</div>
+                        <div class="label">Button</div>
+                    </div>
+                    <div class="palette-item" data-type="search-bar">
+                        <div class="icon">🔍</div>
+                        <div class="label">Search</div>
+                    </div>
+                    <div class="palette-item" data-type="dropdown">
+                        <div class="icon">📋</div>
+                        <div class="label">Dropdown</div>
+                    </div>
+                </div>
+                <div class="palette-category">
+                    <h3>Text</h3>
+                    <div class="palette-item" data-type="h1">
+                        <div class="icon">H1</div>
+                        <div class="label">Heading 1</div>
+                    </div>
+                    <div class="palette-item" data-type="h2">
+                        <div class="icon">H2</div>
+                        <div class="label">Heading 2</div>
+                    </div>
+                    <div class="palette-item" data-type="h3">
+                        <div class="icon">H3</div>
+                        <div class="label">Heading 3</div>
+                    </div>
+                    <div class="palette-item" data-type="p">
+                        <div class="icon">📝</div>
+                        <div class="label">Paragraph</div>
+                    </div>
+                </div>
+                <div class="palette-category">
+                    <h3>Layout</h3>
+                    <div class="palette-item" data-type="header1">
+                        <div class="icon">⏫</div>
+                        <div class="label">Header</div>
+                    </div>
+                    <div class="palette-item" data-type="footer1">
+                        <div class="icon">⏬</div>
+                        <div class="label">Footer</div>
+                    </div>
+                    <div class="palette-item" data-type="card">
+                        <div class="icon">📦</div>
+                        <div class="label">Card</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="statusIndicator" class="hidden absolute top-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black bg-opacity-50 px-4 py-2 rounded-md transition-opacity duration-300"></div>
+            <div class="absolute bottom-3 left-3 text-xs text-gray-400 p-2 bg-[#212121] rounded-lg backdrop-blur-sm border border-gray-800">
+                <i class="fas fa-info-circle mr-1"></i> 
+                Zoom: Wheel • Pan: Drag • Reset: Double-click • Alt+Drag: Disable Grid Snap
+            </div>
+        </main>
+    </div>
+
+    <!-- Hidden iframe for preview -->
+    <iframe id="previewFrame" class="absolute -left-[9999px] top-0 w-screen h-screen border-none"></iframe>
+
+    <script>
+        // === WIREFORGE SPLASH SCREEN MANAGEMENT ===
+        function initSplashScreen() {
+            const splashScreen = document.getElementById('splash-screen');
+            const appContainer = document.getElementById('app-container');
+            
+            console.log('Splash screen initializing...');
+            
+            // Show splash for 2 seconds, then reveal app
+            setTimeout(() => {
+                console.log('Hiding splash screen...');
+                splashScreen.style.opacity = '0';
+                setTimeout(() => {
+                    splashScreen.style.display = 'none';
+                    appContainer.style.opacity = '1';
+                    console.log('Initializing main application...');
+                    initializeMainApplication();
+                }, 500);
+            }, 2000);
+        }
+
+        function initializeMainApplication() {
+            console.log('WireForge main application starting...');
+
+            // DOM Elements
+            const htmlCodeEl = document.getElementById('htmlCode');
+            const cssCodeEl = document.getElementById('cssCode');
+            const copyHtmlBtn = document.getElementById('copyHtmlBtn');
+            const copyCssBtn = document.getElementById('copyCssBtn');
+            const resetViewBtn = document.getElementById('resetViewBtn');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+            const previewBtn = document.getElementById('previewBtn');
+            const canvas = document.getElementById('canvas');
+            const canvasContainer = document.getElementById('canvas-container');
+            const pageBoundary = document.getElementById('page-boundary');
+            const statusIndicator = document.getElementById('statusIndicator');
+            const elementCountEl = document.getElementById('elementCount');
+            const elementPalette = document.getElementById('element-palette');
+            const previewFrame = document.getElementById('previewFrame');
+            
+            // CSS Stylization Menu Elements
+            const cssStylizationMenu = document.getElementById('css-stylization-menu');
+            const cssOptionBtns = document.querySelectorAll('.css-option-btn');
+            const roundedEdgeInput = document.getElementById('rounded-edge-input');
+            const hoverPopInput = document.getElementById('hover-pop-input');
+            const borderRadiusInput = document.getElementById('border-radius');
+            const popDurationInput = document.getElementById('pop-duration');
+            const applyCssBtn = document.getElementById('apply-css-btn');
+
+            // Application State (ERD Forge style)
+            let viewTransform = { x: 0, y: 0, k: 1 };
+            let isPanning = false;
+            let panStart = { x: 0, y: 0 };
+            let elements = [];
+            let draggedElement = null;
+            let selectedElement = null;
+            let isResizing = false;
+            let resizeDirection = null;
+            let elementIdCounter = 0;
+            let gridSnapEnabled = true;
+            const GRID_SIZE = 20;
+            const pageWidth = 1200;
+            let pageHeight = 800; // Make this dynamic
+            const MIN_PAGE_HEIGHT = 800;
+            const PAGE_HEIGHT_PADDING = 100;
+            const MIN_ELEMENT_SIZE = 30;
+            
+            // CSS Stylization Menu State
+            let cssMenuOpen = false;
+            let activeCssOption = null;
+
+            // --- Core Functions ---
+            
+            // Shows status messages at the top of the canvas
+            function showStatus(message, isError = false) {
+                statusIndicator.textContent = message;
+                statusIndicator.className = `absolute top-4 left-1/2 -translate-x-1/2 text-white text-sm bg-black bg-opacity-50 px-4 py-2 rounded-md ${isError ? 'text-red-400' : 'text-green-400'}`;
+                statusIndicator.classList.remove('hidden');
+                setTimeout(() => statusIndicator.classList.add('hidden'), 3000);
+            }
+
+            // Generates unique IDs for elements
+            function generateId() {
+                return 'element-' + (elementIdCounter++);
+            }
+
+            // Snaps values to grid for alignment
+            function snapToGrid(value) {
+                if (!gridSnapEnabled) return value;
+                return Math.round(value / GRID_SIZE) * GRID_SIZE;
+            }
+
+            // Converts screen coordinates to SVG coordinates
+            function getSVGPoint(event) {
+                const pt = canvas.createSVGPoint();
+                pt.x = event.clientX;
+                pt.y = event.clientY;
+                const CTM = document.getElementById('zoom-group').getScreenCTM();
+                return pt.matrixTransform(CTM.inverse());
+            }
+
+            // Calculates the required page height based on element positions
+            function calculateRequiredPageHeight() {
+                if (elements.length === 0) return MIN_PAGE_HEIGHT;
+                
+                let maxBottom = 0;
+                elements.forEach(element => {
+                    const elementBottom = element.y + element.height/2;
+                    if (elementBottom > maxBottom) {
+                        maxBottom = elementBottom;
+                    }
+                });
+                
+                // Add padding and ensure minimum height
+                return Math.max(MIN_PAGE_HEIGHT, maxBottom + PAGE_HEIGHT_PADDING);
+            }
+
+            // Updates the page height and re-renders if needed
+            function updatePageHeight() {
+                const newHeight = calculateRequiredPageHeight();
+                if (newHeight !== pageHeight) {
+                    pageHeight = newHeight;
+                    renderCanvas();
+                    updatePageBoundary();
+                    generateCode();
+                }
+            }
+
+            // Creates a new element and adds it to the canvas
+            function createElement(type, x, y, width = 200, height = 150) {
+                const id = generateId();
+                
+                // Calculate element bounds (using edges instead of center)
+                const halfWidth = width / 2;
+                const halfHeight = height / 2;
+                
+                // Ensure element spawns within page boundaries using edge detection
+                const clampedX = Math.max(halfWidth, Math.min(pageWidth - halfWidth, snapToGrid(x)));
+                const clampedY = Math.max(halfHeight, snapToGrid(y));
+                
+                const element = {
+                    id: id,
+                    type: type,
+                    x: clampedX,
+                    y: clampedY,
+                    width: width,
+                    height: height,
+                    borderRadius: 0,
+                    isRound: false,
+                    hasHoverPop: false,
+                    popDuration: 300
+                };
+
+                elements.push(element);
+                renderElement(element);
+                updatePageHeight(); // Check if we need to expand page height
+                generateCode();
+                updateElementCount();
+                
+                return element;
+            }
+
+            // Renders an element to the SVG canvas
+            function renderElement(element) {
+                const itemsGroup = document.getElementById('items-group');
+                if (!itemsGroup) return;
+                
+                // Remove existing element if it exists
+                const existingElement = document.getElementById(`group-${element.id}`);
+                if (existingElement) {
+                    existingElement.remove();
+                }
+                
+                const elementGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                elementGroup.setAttribute('id', `group-${element.id}`);
+                elementGroup.setAttribute('class', 'draggable');
+                
+                // Create the element rectangle
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('class', 'element image');
+                rect.setAttribute('x', -element.width/2);
+                rect.setAttribute('y', -element.height/2);
+                rect.setAttribute('width', element.width);
+                rect.setAttribute('height', element.height);
+                rect.setAttribute('rx', element.borderRadius);
+                rect.setAttribute('fill', 'rgba(79, 133, 227, 0.3)');
+                rect.setAttribute('stroke', '#6495ED');
+                rect.setAttribute('stroke-width', '1');
+                elementGroup.appendChild(rect);
+
+                // Create the element text
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('class', 'element-name');
+                text.setAttribute('x', 0);
+                text.setAttribute('y', 0);
+                text.setAttribute('dy', '0.35em');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('fill', 'rgba(255, 255, 255, 0.9)');
+                text.setAttribute('font-size', '12px');
+                text.setAttribute('font-weight', '500');
+                text.setAttribute('font-family', 'Inter, sans-serif');
+                text.textContent = '🖼️ Image';
+                elementGroup.appendChild(text);
+
+                // Create delete button (60% larger, positioned better, and red)
+                const deleteBtn = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                deleteBtn.setAttribute('class', 'delete-btn');
+                deleteBtn.setAttribute('x', -element.width/2 - 16);
+                deleteBtn.setAttribute('y', -element.height/2 - 16);
+                deleteBtn.setAttribute('width', '32');
+                deleteBtn.setAttribute('height', '32');
+                deleteBtn.setAttribute('rx', '16');
+                deleteBtn.setAttribute('fill', '#ff4444');
+                elementGroup.appendChild(deleteBtn);
+
+                const deleteText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                deleteText.setAttribute('x', -element.width/2);
+                deleteText.setAttribute('y', -element.height/2);
+                deleteText.setAttribute('dy', '0.35em');
+                deleteText.setAttribute('text-anchor', 'middle');
+                deleteText.setAttribute('fill', 'white');
+                deleteText.setAttribute('font-size', '18px');
+                deleteText.setAttribute('font-weight', 'bold');
+                deleteText.setAttribute('font-family', 'Inter, sans-serif');
+                deleteText.textContent = '×';
+                elementGroup.appendChild(deleteText);
+
+                // Create resize handles (edges only, no corners)
+                const resizeHandles = [
+                    { class: 'top', x: -element.width/2 + 20, y: -element.height/2 - 3, width: element.width - 40, height: 6 },
+                    { class: 'right', x: element.width/2 - 3, y: -element.height/2 + 20, width: 6, height: element.height - 40 },
+                    { class: 'bottom', x: -element.width/2 + 20, y: element.height/2 - 3, width: element.width - 40, height: 6 },
+                    { class: 'left', x: -element.width/2 - 3, y: -element.height/2 + 20, width: 6, height: element.height - 40 }
+                ];
+
+                resizeHandles.forEach(handle => {
+                    const resizeHandle = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    resizeHandle.setAttribute('class', `resize-handle ${handle.class}`);
+                    resizeHandle.setAttribute('x', handle.x);
+                    resizeHandle.setAttribute('y', handle.y);
+                    resizeHandle.setAttribute('width', handle.width);
+                    resizeHandle.setAttribute('height', handle.height);
+                    resizeHandle.setAttribute('rx', '2');
+                    resizeHandle.setAttribute('fill', '#6495ED');
+                    elementGroup.appendChild(resizeHandle);
+                });
+                
+                // Create border radius adjustment dots if border radius is applied
+                if (element.borderRadius > 0) {
+                    elementGroup.classList.add('has-border-radius');
+                    
+                    const radiusDots = [
+                        { class: 'top-left', x: -element.width/2, y: -element.height/2 },
+                        { class: 'top-right', x: element.width/2, y: -element.height/2 },
+                        { class: 'bottom-left', x: -element.width/2, y: element.height/2 },
+                        { class: 'bottom-right', x: element.width/2, y: element.height/2 }
+                    ];
+                    
+                    radiusDots.forEach(dot => {
+                        const radiusDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                        radiusDot.setAttribute('class', `border-radius-dot ${dot.class}`);
+                        radiusDot.setAttribute('cx', dot.x);
+                        radiusDot.setAttribute('cy', dot.y);
+                        radiusDot.setAttribute('r', '4');
+                        radiusDot.setAttribute('fill', '#f59e0b');
+                        elementGroup.appendChild(radiusDot);
+                    });
+                }
+
+                elementGroup.setAttribute('transform', `translate(${element.x}, ${element.y})`);
+                itemsGroup.appendChild(elementGroup);
+
+                // Add event listeners
+                elementGroup.addEventListener('mousedown', (e) => handleElementMouseDown(e, element.id));
+                
+                // Add double-click listener for CSS menu
+                elementGroup.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    selectElement(element.id);
+                    showCssMenu(element);
+                });
+                
+                element.domElement = elementGroup;
+            }
+
+            // Handles mouse down events on elements
+            function handleElementMouseDown(event, elementId) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                if (isPanning) return;
+                
+                const element = elements.find(el => el.id === elementId);
+                if (!element) return;
+
+                const target = event.target;
+                
+                // Priority 1: Check if resizing
+                if (target.classList.contains('resize-handle')) {
+                    startResize(event, element.id, target.classList[1]); // Second class is the direction
+                    return;
+                }
+                
+                // Priority 2: Check if deleting
+                if (target.classList.contains('delete-btn') || target.textContent === '×') {
+                    deleteElement(element.id);
+                    return;
+                }
+                
+                // Priority 3: Check if border radius adjustment
+                if (target.classList.contains('border-radius-dot')) {
+                    startBorderRadiusAdjust(event, element.id, target.classList[1]); // Second class is the corner
+                    return;
+                }
+                
+                // Priority 4: Default to dragging
+                startDrag(event, element.id);
+            }
+
+            // Starts dragging an element
+            function startDrag(event, elementId) {
+                const element = elements.find(el => el.id === elementId);
+                if (!element) return;
+
+                const targetGroup = document.getElementById(`group-${element.id}`);
+                targetGroup.classList.add('dragging');
+
+                const startPos = getSVGPoint(event);
+                const elementPos = { x: element.x, y: element.y };
+
+                draggedElement = {
+                    id: elementId,
+                    offset: {
+                        x: startPos.x - elementPos.x,
+                        y: startPos.y - elementPos.y
+                    }
+                };
+                
+                canvasContainer.addEventListener('mousemove', dragMove);
+                canvasContainer.addEventListener('mouseup', endDrag);
+                canvasContainer.addEventListener('mouseleave', endDrag);
+            }
+
+            // Handles element dragging movement
+            function dragMove(event) {
+                if (!draggedElement) return;
+                event.preventDefault();
+
+                const element = elements.find(el => el.id === draggedElement.id);
+                if (!element) return;
+
+                const newPos = getSVGPoint(event);
+                
+                // Calculate new position with grid snapping (unless Alt is pressed)
+                const useGridSnap = gridSnapEnabled && !event.altKey;
+                let newX = newPos.x - draggedElement.offset.x;
+                let newY = newPos.y - draggedElement.offset.y;
+
+                if (useGridSnap) {
+                    newX = snapToGrid(newX);
+                    newY = snapToGrid(newY);
+                }
+
+                // Calculate element bounds (using edges instead of center)
+                const halfWidth = element.width / 2;
+                const halfHeight = element.height / 2;
+                
+                // Ensure element stays within page boundaries using edge detection
+                // Left and right boundaries
+                element.x = Math.max(halfWidth, Math.min(pageWidth - halfWidth, newX));
+                // Top boundary only (bottom is dynamic)
+                element.y = Math.max(halfHeight, newY);
+
+                const elementGroup = document.getElementById(`group-${element.id}`);
+                elementGroup.setAttribute('transform', `translate(${element.x}, ${element.y})`);
+
+                // Update page height if needed
+                updatePageHeight();
+                generateCode();
+            }
+
+            // Starts resizing an element
+            function startResize(event, elementId, direction) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const element = elements.find(el => el.id === elementId);
+                if (!element) return;
+
+                const targetGroup = document.getElementById(`group-${element.id}`);
+                const resizeHandle = targetGroup.querySelector(`.resize-handle.${direction}`);
+                resizeHandle.classList.add('resizing');
+
+                const startPos = getSVGPoint(event);
+                const startWidth = element.width;
+                const startHeight = element.height;
+                const startX = element.x;
+                const startY = element.y;
+
+                isResizing = true;
+                resizeDirection = direction;
+
+                function onResizeMove(e) {
+                    if (!isResizing) return;
+                    e.preventDefault();
+
+                    const newPos = getSVGPoint(e);
+                    const deltaX = newPos.x - startPos.x;
+                    const deltaY = newPos.y - startPos.y;
+
+                    let newWidth = startWidth;
+                    let newHeight = startHeight;
+                    let newX = startX;
+                    let newY = startY;
+
+                    // Apply grid snapping unless Alt is pressed
+                    const useGridSnap = gridSnapEnabled && !e.altKey;
+
+                    switch (direction) {
+                        case 'top':
+                            newHeight = Math.max(MIN_ELEMENT_SIZE, startHeight - deltaY);
+                            if (useGridSnap) newHeight = snapToGrid(newHeight);
+                            newY = startY - (newHeight - startHeight) / 2;
+                            break;
+                        case 'right':
+                            newWidth = Math.max(MIN_ELEMENT_SIZE, startWidth + deltaX);
+                            if (useGridSnap) newWidth = snapToGrid(newWidth);
+                            newX = startX + (newWidth - startWidth) / 2;
+                            break;
+                        case 'bottom':
+                            newHeight = Math.max(MIN_ELEMENT_SIZE, startHeight + deltaY);
+                            if (useGridSnap) newHeight = snapToGrid(newHeight);
+                            newY = startY + (newHeight - startHeight) / 2;
+                            break;
+                        case 'left':
+                            newWidth = Math.max(MIN_ELEMENT_SIZE, startWidth - deltaX);
+                            if (useGridSnap) newWidth = snapToGrid(newWidth);
+                            newX = startX - (newWidth - startWidth) / 2;
+                            break;
+                    }
+
+                    // Ensure element stays within page boundaries
+                    const halfWidth = newWidth / 2;
+                    const halfHeight = newHeight / 2;
+                    
+                    // For left/right resizing, check horizontal boundaries
+                    if (direction === 'left' || direction === 'right') {
+                        newX = Math.max(halfWidth, Math.min(pageWidth - halfWidth, newX));
+                    }
+                    
+                    // For top/bottom resizing, check vertical boundaries (top only)
+                    if (direction === 'top' || direction === 'bottom') {
+                        newY = Math.max(halfHeight, newY);
+                    }
+
+                    element.width = newWidth;
+                    element.height = newHeight;
+                    element.x = newX;
+                    element.y = newY;
+
+                    // Re-render the element with new dimensions
+                    renderElement(element);
+                    
+                    // Update page height if needed
+                    updatePageHeight();
+                    generateCode();
+                }
+
+                function onResizeEnd() {
+                    isResizing = false;
+                    resizeDirection = null;
+                    resizeHandle.classList.remove('resizing');
+                    canvasContainer.removeEventListener('mousemove', onResizeMove);
+                    canvasContainer.removeEventListener('mouseup', onResizeEnd);
+                    canvasContainer.removeEventListener('mouseleave', onResizeEnd);
+                }
+
+                canvasContainer.addEventListener('mousemove', onResizeMove);
+                canvasContainer.addEventListener('mouseup', onResizeEnd);
+                canvasContainer.addEventListener('mouseleave', onResizeEnd);
+            }
+            
+            // Starts adjusting border radius
+            function startBorderRadiusAdjust(event, elementId, corner) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const element = elements.find(el => el.id === elementId);
+                if (!element) return;
+
+                const startPos = getSVGPoint(event);
+                const startRadius = element.borderRadius;
+
+                function onRadiusMove(e) {
+                    e.preventDefault();
+
+                    const newPos = getSVGPoint(e);
+                    const deltaX = newPos.x - startPos.x;
+                    const deltaY = newPos.y - startPos.y;
+                    
+                    // Calculate new border radius based on movement
+                    const delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    const direction = deltaX + deltaY > 0 ? 1 : -1;
+                    let newRadius = startRadius + direction * delta;
+                    
+                    // Clamp to reasonable values
+                    newRadius = Math.max(0, Math.min(100, newRadius));
+                    
+                    element.borderRadius = newRadius;
+                    
+                    // Update UI
+                    if (selectedElement && selectedElement.id === element.id) {
+                        borderRadiusInput.value = newRadius;
+                    }
+                    
+                    // Re-render the element with new border radius
+                    renderElement(element);
+                    generateCode();
+                }
+
+                function onRadiusEnd() {
+                    canvasContainer.removeEventListener('mousemove', onRadiusMove);
+                    canvasContainer.removeEventListener('mouseup', onRadiusEnd);
+                    canvasContainer.removeEventListener('mouseleave', onRadiusEnd);
+                }
+
+                canvasContainer.addEventListener('mousemove', onRadiusMove);
+                canvasContainer.addEventListener('mouseup', onRadiusEnd);
+                canvasContainer.addEventListener('mouseleave', onRadiusEnd);
+            }
+
+            // Ends dragging an element
+            function endDrag() {
+                if (draggedElement) {
+                    const element = elements.find(el => el.id === draggedElement.id);
+                    if (element) {
+                        const targetGroup = document.getElementById(`group-${element.id}`);
+                        if (targetGroup) targetGroup.classList.remove('dragging');
+                    }
+                }
+                draggedElement = null;
+                canvasContainer.removeEventListener('mousemove', dragMove);
+                canvasContainer.removeEventListener('mouseup', endDrag);
+                canvasContainer.removeEventListener('mouseleave', endDrag);
+            }
+
+            // Selects an element
+            function selectElement(elementId) {
+                // Deselect previous element
+                if (selectedElement) {
+                    const prevGroup = document.getElementById(`group-${selectedElement.id}`);
+                    if (prevGroup) prevGroup.classList.remove('selected');
+                }
+                
+                // Select new element
+                selectedElement = elements.find(el => el.id === elementId);
+                if (selectedElement) {
+                    const group = document.getElementById(`group-${selectedElement.id}`);
+                    if (group) group.classList.add('selected');
+                }
+            }
+            
+            // Shows the CSS menu next to the selected element
+            function showCssMenu(element) {
+                if (!element) return;
+                
+                // Calculate the position of the element in screen coordinates
+                const elementGroup = document.getElementById(`group-${element.id}`);
+                if (elementGroup) {
+                    const bbox = elementGroup.getBoundingClientRect();
+                    
+                    // Position the menu to the right of the element
+                    cssStylizationMenu.style.top = `${bbox.top + window.scrollY}px`;
+                    cssStylizationMenu.style.left = `${bbox.right + window.scrollX + 10}px`;
+                }
+                
+                cssStylizationMenu.style.display = 'block';
+                cssMenuOpen = true;
+                
+                // Reset active option and inputs
+                activeCssOption = null;
+                cssOptionBtns.forEach(btn => btn.classList.remove('active'));
+                roundedEdgeInput.classList.add('hidden');
+                hoverPopInput.classList.add('hidden');
+                applyCssBtn.classList.add('hidden');
+            }
+            
+            // Hides the CSS menu
+            function hideCssMenu() {
+                cssStylizationMenu.style.display = 'none';
+                cssMenuOpen = false;
+            }
+
+            // Deletes an element
+            function deleteElement(id) {
+                const element = elements.find(el => el.id === id);
+                if (!element) return;
+                
+                // Remove from DOM
+                const elementGroup = document.getElementById(`group-${element.id}`);
+                if (elementGroup) elementGroup.remove();
+                
+                // Remove from array
+                elements = elements.filter(el => el.id !== id);
+                selectedElement = null;
+                
+                // Update page height and other states
+                updatePageHeight();
+                generateCode();
+                updateElementCount();
+                
+                showStatus('Element deleted');
+            }
+
+            // Generates HTML and CSS code from elements
+            function generateCode() {
+                // Generate HTML
+                let html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Website</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">\n`;
+                
+                // Sort elements by position
+                const sortedElements = [...elements].sort((a, b) => {
+                    if (a.y !== b.y) return a.y - b.y;
+                    return a.x - b.x;
+                });
+                
+                // Generate HTML for elements
+                sortedElements.forEach(element => {
+                    html += generateElementHTML(element, 2);
+                });
+                
+                html += '    </div>\n</body>\n</html>';
+                
+                // Generate CSS
+                let css = `/* WireForge Generated CSS */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: ${pageWidth}px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    min-height: ${pageHeight}px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    position: relative;
+}\n\n`;
+                
+                sortedElements.forEach(element => {
+                    css += generateElementCSS(element);
+                });
+                
+                htmlCodeEl.value = html;
+                cssCodeEl.value = css;
+            }
+
+            // Generates HTML for a specific element
+            function generateElementHTML(element, indentLevel) {
+                const indent = ' '.repeat(indentLevel * 4);
+                let html = '';
+                
+                switch(element.type) {
+                    case 'image':
+                        html = `${indent}<img src="https://placehold.co/${element.width}x${element.height}/e8e8e8/333?text=Image" alt="Description" class="${element.id}">\n`;
+                        break;
+                    default:
+                        html = `${indent}<div class="${element.id}">${element.type} Element</div>\n`;
+                        break;
+                }
+                
+                return html;
+            }
+
+            // Generates CSS for a specific element
+            function generateElementCSS(element) {
+                let css = `.${element.id} {\n`;
+                css += `  position: absolute;\n`;
+                css += `  left: ${element.x - element.width/2}px;\n`; // Position from left edge
+                css += `  top: ${element.y - element.height/2}px;\n`; // Position from top edge
+                css += `  width: ${element.width}px;\n`;
+                css += `  height: ${element.height}px;\n`;
+                
+                switch(element.type) {
+                    case 'image':
+                        css += `  object-fit: cover;\n`;
+                        css += `  display: block;\n`;
+                        break;
+                }
+                
+                if (element.borderRadius > 0) {
+                    css += `  border-radius: ${element.borderRadius}px;\n`;
+                }
+                
+                if (element.isRound) {
+                    css += `  border-radius: 50%;\n`;
+                }
+                
+                if (element.hasHoverPop) {
+                    css += `  transition: transform ${element.popDuration}ms ease;\n`;
+                    css += `}\n\n`;
+                    css += `.${element.id}:hover {\n`;
+                    css += `  transform: scale(1.05);\n`;
+                }
+                
+                css += `}\n\n`;
+                
+                return css;
+            }
+
+            // Updates the element count display
+            function updateElementCount() {
+                elementCountEl.textContent = `${elements.length} elements in design`;
+            }
+
+            // Updates the page boundary indicator
+            function updatePageBoundary() {
+                pageBoundary.style.left = `${viewTransform.x}px`;
+                pageBoundary.style.top = `${viewTransform.y}px`;
+                pageBoundary.style.width = `${pageWidth * viewTransform.k}px`;
+                pageBoundary.style.height = `${pageHeight * viewTransform.k}px`;
+            }
+
+            // Renders the canvas with grid and elements
+            function renderCanvas() {
+                canvas.innerHTML = '';
+                
+                // Add grid pattern
+                const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+                defs.innerHTML = `<pattern id="grid" width="${GRID_SIZE}" height="${GRID_SIZE}" patternUnits="userSpaceOnUse"><path d="M ${GRID_SIZE} 0 L 0 0 0 ${GRID_SIZE}" fill="none" class="grid-pattern"/></pattern>`;
+                canvas.appendChild(defs);
+                
+                const gridRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                gridRect.setAttribute('width', '100%');
+                gridRect.setAttribute('height', '100%');
+                gridRect.setAttribute('fill', 'url(#grid)');
+                canvas.appendChild(gridRect);
+
+                // Add page background
+                const pageRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                pageRect.setAttribute('x', 0);
+                pageRect.setAttribute('y', 0);
+                pageRect.setAttribute('width', pageWidth);
+                pageRect.setAttribute('height', pageHeight);
+                pageRect.setAttribute('fill', '#ffffff');
+                pageRect.setAttribute('stroke', '#6495ED');
+                pageRect.setAttribute('stroke-width', '2');
+                canvas.appendChild(pageRect);
+
+                // Add page dimensions label
+                const pageLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                pageLabel.setAttribute('x', 10);
+                pageLabel.setAttribute('y', 20);
+                pageLabel.setAttribute('fill', '#6495ED');
+                pageLabel.setAttribute('font-size', '12px');
+                pageLabel.setAttribute('font-family', 'Inter, sans-serif');
+                pageLabel.textContent = `${pageWidth} × ${pageHeight}px`;
+                canvas.appendChild(pageLabel);
+
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.id = 'zoom-group';
+                canvas.appendChild(g);
+
+                const itemsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                itemsGroup.id = 'items-group';
+                g.appendChild(itemsGroup);
+                
+                // Re-render all elements
+                elements.forEach(element => {
+                    renderElement(element);
+                });
+                
+                updateView();
+            }
+
+            // Updates the view transform
+            function updateView() {
+                const g = document.getElementById('zoom-group');
+                if (g) g.setAttribute('transform', `translate(${viewTransform.x}, ${viewTransform.y}) scale(${viewTransform.k})`);
+            }
+
+            // Handles zooming with mouse wheel
+            function handleZoom(event) {
+                event.preventDefault();
+                const scaleFactor = 1.1;
+                const { clientX, clientY, deltaY } = event;
+                const rect = canvas.getBoundingClientRect();
+                const offsetX = clientX - rect.left;
+                const offsetY = clientY - rect.top;
+                
+                const oldScale = viewTransform.k;
+                const newScale = deltaY < 0 ? oldScale * scaleFactor : oldScale / scaleFactor;
+                viewTransform.k = Math.max(0.1, Math.min(5, newScale));
+                viewTransform.x = offsetX - (offsetX - viewTransform.x) * (viewTransform.k / oldScale);
+                viewTransform.y = offsetY - (offsetY - viewTransform.y) * (viewTransform.k / oldScale);
+                updateView();
+                updatePageBoundary();
+            }
+
+            // Starts panning the canvas
+            function startPan(event) { 
+                if (event.target.closest('.draggable') || isResizing || cssMenuOpen) return;
+                if (event.button !== 0) return; 
+                event.preventDefault();
+                isPanning = true; 
+                canvasContainer.style.cursor = 'grabbing'; 
+                panStart.x = event.clientX - viewTransform.x; 
+                panStart.y = event.clientY - viewTransform.y; 
+            }
+            
+            // Handles panning movement
+            function doPan(event) { 
+                if (!isPanning) return; 
+                event.preventDefault(); 
+                viewTransform.x = event.clientX - panStart.x; 
+                viewTransform.y = event.clientY - panStart.y; 
+                updateView(); 
+                updatePageBoundary();
+            }
+            
+            // Ends panning
+            function endPan() { 
+                isPanning = false; 
+                canvasContainer.style.cursor = 'grab'; 
+            }
+
+            // Resets the view to default
+            function resetView() {
+                viewTransform = { x: 0, y: 0, k: 1 };
+                if (elements.length > 0) {
+                    const g = document.getElementById('zoom-group');
+                    if (g) {
+                        const bbox = g.getBBox();
+                        if (bbox.width > 0 && bbox.height > 0) {
+                            const { clientWidth, clientHeight } = canvasContainer;
+                            const scaleX = clientWidth / (bbox.width + 100);
+                            const scaleY = clientHeight / (bbox.height + 100);
+                            viewTransform.k = Math.min(1, scaleX, scaleY);
+                            viewTransform.x = (clientWidth - bbox.width * viewTransform.k) / 2 - bbox.x * viewTransform.k;
+                            viewTransform.y = (clientHeight - bbox.height * viewTransform.k) / 2 - bbox.y * viewTransform.k;
+                        }
+                    }
+                }
+                updateView();
+                updatePageBoundary();
+                showStatus("View has been reset.");
+            }
+
+            // Opens a preview of the website in a new window
+            function previewWebsite() {
+                const html = htmlCodeEl.value;
+                const css = cssCodeEl.value;
+                
+                previewFrame.srcdoc = `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
+                
+                const previewWindow = window.open('', '_blank');
+                previewWindow.document.write(`<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`);
+                previewWindow.document.close();
+                
+                showStatus('Preview opened in new window');
+            }
+            
+            // CSS Stylization Menu Functions
+            
+            // Handles clicking on CSS option buttons
+            function handleCssOptionClick(option) {
+                // Reset all buttons
+                cssOptionBtns.forEach(btn => btn.classList.remove('active'));
+                
+                // Hide all input fields
+                roundedEdgeInput.classList.add('hidden');
+                hoverPopInput.classList.add('hidden');
+                applyCssBtn.classList.add('hidden');
+                
+                // Set active option and show relevant input
+                activeCssOption = option;
+                event.target.classList.add('active');
+                
+                switch(option) {
+                    case 'rounded-edge':
+                        roundedEdgeInput.classList.remove('hidden');
+                        applyCssBtn.classList.remove('hidden');
+                        break;
+                    case 'hover-pop':
+                        hoverPopInput.classList.remove('hidden');
+                        applyCssBtn.classList.remove('hidden');
+                        break;
+                    case 'make-circle':
+                        // Apply instantly for make circle option
+                        applyCssStyling();
+                        break;
+                }
+            }
+            
+            // Applies CSS styling to the selected element
+            function applyCssStyling() {
+                if (!selectedElement) return;
+                
+                // Apply selected options
+                if (activeCssOption === 'rounded-edge') {
+                    const borderRadius = parseInt(borderRadiusInput.value) || 0;
+                    selectedElement.borderRadius = borderRadius;
+                    selectedElement.isRound = false;
+                } else if (activeCssOption === 'make-circle') {
+                    selectedElement.borderRadius = Math.min(selectedElement.width, selectedElement.height) / 2;
+                    selectedElement.isRound = true;
+                } else if (activeCssOption === 'hover-pop') {
+                    const popDuration = parseInt(popDurationInput.value) || 300;
+                    selectedElement.hasHoverPop = true;
+                    selectedElement.popDuration = popDuration;
+                }
+                
+                // Re-render element and generate code
+                renderElement(selectedElement);
+                generateCode();
+                
+                // Hide the menu
+                hideCssMenu();
+                
+                showStatus('CSS styling applied');
+            }
+
+            // --- Event Listeners ---
+            // Element palette interactions
+            elementPalette.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.palette-item')) {
+                    e.preventDefault();
+                    const paletteItem = e.target.closest('.palette-item');
+                    const type = paletteItem.getAttribute('data-type');
+                    
+                    // Create element at center of viewport
+                    const rect = canvas.getBoundingClientRect();
+                    const centerX = (rect.width / 2 - viewTransform.x) / viewTransform.k;
+                    const centerY = (rect.height / 2 - viewTransform.y) / viewTransform.k;
+                    
+                    createElement(type, centerX, centerY);
+                    showStatus(`${type} element added`);
+                }
+            });
+
+            // Copy buttons
+            copyHtmlBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(htmlCodeEl.value)
+                    .then(() => showStatus('HTML copied to clipboard'))
+                    .catch(err => showStatus('Failed to copy HTML', true));
+            });
+
+            copyCssBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(cssCodeEl.value)
+                    .then(() => showStatus('CSS copied to clipboard'))
+                    .catch(err => showStatus('Failed to copy CSS', true));
+            });
+
+            // Control buttons
+            resetViewBtn.addEventListener('click', resetView);
+            
+            clearAllBtn.addEventListener('click', () => {
+                if (elements.length === 0) {
+                    showStatus("No elements to clear", true);
+                    return;
+                }
+                
+                if (confirm('Are you sure you want to clear all elements?')) {
+                    elements.forEach(element => {
+                        const elementGroup = document.getElementById(`group-${element.id}`);
+                        if (elementGroup) elementGroup.remove();
+                    });
+                    elements = [];
+                    updatePageHeight(); // Reset to minimum height
+                    generateCode();
+                    updateElementCount();
+                    showStatus('All elements cleared');
+                }
+            });
+
+            previewBtn.addEventListener('click', previewWebsite);
+            
+            // CSS Stylization Menu
+            cssOptionBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const option = e.target.getAttribute('data-option') || e.target.parentElement.getAttribute('data-option');
+                    handleCssOptionClick(option);
+                });
+            });
+            
+            applyCssBtn.addEventListener('click', applyCssStyling);
+
+            // Canvas interactions (ERD Forge style)
+            canvasContainer.addEventListener('wheel', handleZoom);
+            canvasContainer.addEventListener('mousedown', (e) => {
+                // Check if clicked on an element
+                if (e.target.closest('.draggable') || 
+                    e.target.classList.contains('element') || 
+                    e.target.classList.contains('delete-btn') ||
+                    e.target.classList.contains('resize-handle') ||
+                    e.target.classList.contains('border-radius-dot')) {
+                    return;
+                }
+                
+                // If clicked on empty space, deselect current element and hide CSS menu
+                if (selectedElement) {
+                    selectElement(null);
+                    hideCssMenu();
+                }
+                
+                startPan(e);
+            });
+            canvasContainer.addEventListener('mousemove', doPan);
+            canvasContainer.addEventListener('mouseup', endPan);
+            canvasContainer.addEventListener('mouseleave', endPan);
+
+            // Double-click to reset view
+            canvasContainer.addEventListener('dblclick', (e) => {
+                if (!e.target.closest('.draggable') && 
+                    !e.target.classList.contains('element') && 
+                    !e.target.classList.contains('delete-btn') &&
+                    !e.target.classList.contains('resize-handle') &&
+                    !e.target.classList.contains('border-radius-dot')) {
+                    resetView();
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Delete' && selectedElement) {
+                    deleteElement(selectedElement.id);
+                    hideCssMenu();
+                }
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    previewWebsite();
+                }
+                
+                // Toggle grid snapping with Alt key
+                if (e.key === 'Alt') {
+                    gridSnapEnabled = false;
+                }
+                
+                // Escape key to hide CSS menu
+                if (e.key === 'Escape' && cssMenuOpen) {
+                    hideCssMenu();
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if (e.key === 'Alt') {
+                    gridSnapEnabled = true;
+                }
+            });
+
+            // Prevent text selection
+            document.addEventListener('selectstart', (e) => {
+                if (e.target.closest('.element') || e.target.closest('#element-palette') || e.target.closest('#css-stylization-menu')) {
+                    e.preventDefault();
+                }
+            });
+
+            // Initialize
+            renderCanvas();
+            updatePageBoundary();
+            generateCode();
+            updateElementCount();
+            
+            console.log('WireForge main application initialized successfully');
+        }
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', initSplashScreen);
+    </script>
+</body>
 </html>
